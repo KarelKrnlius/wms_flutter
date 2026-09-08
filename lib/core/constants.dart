@@ -1,22 +1,25 @@
 ﻿// constants.dart
-// Semua nilai tetap (URL, warna, dsb.) dipusatkan di sini.
-// Kalau mau ganti URL server, cukup ubah satu baris di sini.
+//
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  CARA GANTI URL SESUAI ENVIRONMENT                          ║
+// ╠══════════════════════════════════════════════════════════════╣
+// ║  NGROK (HP Fisik / Emulator / Chrome — direkomendasikan)    ║
+// ║    baseUrl = 'https://xxxx-xxxx.ngrok-free.app'             ║
+// ║                                                              ║
+// ║  Windows/Chrome lokal tanpa Ngrok                           ║
+// ║    baseUrl = 'http://localhost:8000'                         ║
+// ║                                                              ║
+// ║  Android Emulator (AVD) tanpa Ngrok                         ║
+// ║    baseUrl = 'http://10.0.2.2:8000'                         ║
+// ║                                                              ║
+// ║  HP Fisik via WiFi tanpa Ngrok                              ║
+// ║    baseUrl = 'http://<IP-LAPTOP>:8000'  (cek: ipconfig)     ║
+// ╚══════════════════════════════════════════════════════════════╝
 
 class AppConstants {
-  // ============================================================
-  // BASE URL API — pilih sesuai perangkat yang dipakai
-  // ============================================================
-  //
-  // 1. Emulator Android (AVD bawaan Android Studio):
-  //    'http://10.0.2.2:8000'
-  //
-  // 2. HP Fisik via WiFi (cek IP laptop: ipconfig di CMD):
-  //    'http://192.168.X.X:8000'
-  //
-  // 3. Genymotion:
-  //    'http://10.0.3.2:8000'
-  //
-  static const String baseUrl = 'http://10.0.2.2:8000';
+  static const String baseUrl = 'https://ocelot-snugness-extradite.ngrok-free.dev';
+  // static const String baseUrl = 'http://localhost:8000';   // Windows/Chrome lokal
+  // static const String baseUrl = 'http://10.0.2.2:8000';   // Android Emulator
 
   static const String apiUrl   = '$baseUrl/api';
   static const String tokenKey = 'wms_token';

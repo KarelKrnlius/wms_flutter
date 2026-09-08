@@ -10,6 +10,9 @@ import 'screens/outbound/outbound_screen.dart';
 import 'screens/inventory/inventory_screen.dart';
 import 'screens/supplier/supplier_screen.dart';
 import 'screens/customer/customer_screen.dart';
+import 'screens/stock_opname/stock_opname_screen.dart';
+import 'screens/rack/rack_location_screen.dart';
+import 'widgets/common_widgets.dart';
 
 class MainScaffold extends StatefulWidget {
   const MainScaffold({super.key});
@@ -22,18 +25,15 @@ class _MainScaffoldState extends State<MainScaffold> {
   Map<String, dynamic>? _user;
 
   final List<_NavItem> _navItems = [
-    _NavItem(label: 'Dashboard', icon: Icons.dashboard_outlined,    activeIcon: Icons.dashboard,          screen: const DashboardScreen()),
-    _NavItem(label: 'Barang',    icon: Icons.inventory_2_outlined,   activeIcon: Icons.inventory_2,        screen: const BarangScreen()),
+    _NavItem(label: 'Dashboard', icon: Icons.dashboard_outlined,    activeIcon: Icons.dashboard,              screen: const DashboardScreen()),
+    _NavItem(label: 'Barang',    icon: Icons.inventory_2_outlined,   activeIcon: Icons.inventory_2,            screen: const BarangScreen()),
     _NavItem(label: 'Inbound',   icon: Icons.arrow_downward_rounded, activeIcon: Icons.arrow_downward_rounded, screen: const InboundScreen()),
     _NavItem(label: 'Outbound',  icon: Icons.arrow_upward_rounded,   activeIcon: Icons.arrow_upward_rounded,   screen: const OutboundScreen()),
-    _NavItem(label: 'Lainnya',   icon: Icons.grid_view_outlined,     activeIcon: Icons.grid_view,          screen: const _MoreScreen()),
+    _NavItem(label: 'Lainnya',   icon: Icons.grid_view_outlined,     activeIcon: Icons.grid_view,              screen: const _MoreScreen()),
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _loadUser();
-  }
+  void initState() { super.initState(); _loadUser(); }
 
   Future<void> _loadUser() async {
     final u = await AuthService().getUser();
@@ -68,7 +68,6 @@ class _MainScaffoldState extends State<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     final isAdmin = _user?['role'] == 'admin';
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -149,59 +148,119 @@ class _NavItem {
   const _NavItem({required this.label, required this.icon, required this.activeIcon, required this.screen});
 }
 
-// ---- HALAMAN "LAINNYA" ----
+// ================================================================
+// HALAMAN "LAINNYA" — grid semua menu tambahan
+// ================================================================
 class _MoreScreen extends StatelessWidget {
   const _MoreScreen();
 
   @override
   Widget build(BuildContext context) {
-    final menuItems = [
-      _MenuItem(label: 'Kartu Stok', icon: Icons.receipt_long_outlined,  color: AppColors.primary,         route: const InventoryScreen()),
-      _MenuItem(label: 'Supplier',   icon: Icons.business_outlined,        color: const Color(0xFF7C3AED),   route: const SupplierScreen()),
-      _MenuItem(label: 'Customer',   icon: Icons.people_outline,           color: const Color(0xFF0891B2),   route: const CustomerScreen()),
+    final menus = [
+      _MenuItem(
+        label: 'Kartu Stok',
+        subtitle: 'Pantau stok real-time',
+        icon: Icons.receipt_long_outlined,
+        color: AppColors.primary,
+        route: const InventoryScreen(),
+      ),
+      _MenuItem(
+        label: 'Stock Opname',
+        subtitle: 'Catatan kondisi fisik',
+        icon: Icons.fact_check_outlined,
+        color: const Color(0xFF4F46E5),
+        route: const StockOpnameScreen(),
+      ),
+      _MenuItem(
+        label: 'Lokasi Rak',
+        subtitle: 'Kapasitas gudang',
+        icon: Icons.storage_outlined,
+        color: const Color(0xFF0891B2),
+        route: const RackLocationScreen(),
+      ),
+      _MenuItem(
+        label: 'Supplier',
+        subtitle: 'Direktori pemasok',
+        icon: Icons.business_outlined,
+        color: const Color(0xFF7C3AED),
+        route: const SupplierScreen(),
+      ),
+      _MenuItem(
+        label: 'Customer',
+        subtitle: 'Direktori pelanggan',
+        icon: Icons.people_outline,
+        color: const Color(0xFF0D9488),
+        route: const CustomerScreen(),
+      ),
     ];
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const SizedBox(height: 8),
-          const Text('Menu Lainnya',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-          const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 0.9,
-            children: menuItems.map((m) => InkWell(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => m.route)),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Container(
-                    width: 48, height: 48,
-                    decoration: BoxDecoration(
-                      color: m.color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(m.icon, color: m.color, size: 24),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(m.label, textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                ]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            const Text('Menu Lainnya',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+            const SizedBox(height: 4),
+            const Text('Fitur tambahan sistem WMS',
+                style: TextStyle(fontSize: 12, color: AppColors.textHint)),
+            const SizedBox(height: 16),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.5,
               ),
-            )).toList(),
-          ),
-        ]),
+              itemCount: menus.length,
+              itemBuilder: (ctx, i) {
+                final m = menus[i];
+                return InkWell(
+                  onTap: () => Navigator.push(
+                    ctx, MaterialPageRoute(builder: (_) => m.route),
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  child: WmsCard(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44, height: 44,
+                          decoration: BoxDecoration(
+                            color: m.color.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(m.icon, color: m.color, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(m.label,
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                              Text(m.subtitle,
+                                  style: const TextStyle(fontSize: 10, color: AppColors.textHint),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, size: 16, color: AppColors.textHint),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -209,8 +268,16 @@ class _MoreScreen extends StatelessWidget {
 
 class _MenuItem {
   final String label;
+  final String subtitle;
   final IconData icon;
   final Color color;
   final Widget route;
-  const _MenuItem({required this.label, required this.icon, required this.color, required this.route});
+  const _MenuItem({
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.route,
+  });
 }
+

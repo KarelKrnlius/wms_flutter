@@ -30,16 +30,18 @@ class ApiService {
     return prefs.getString(AppConstants.tokenKey);
   }
 
-  /// Membuat header HTTP standar (JSON + Bearer token jika ada).
+  /// Membuat header HTTP standar (JSON + Bearer token + Ngrok bypass).
   Future<Map<String, String>> _buildHeaders({bool withAuth = true}) async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept':       'application/json',
+      // Header wajib agar Ngrok tidak menampilkan halaman konfirmasi browser
+      // saat request datang dari Flutter Web (Chrome) maupun mobile.
+      'ngrok-skip-browser-warning': 'true',
     };
     if (withAuth) {
       final token = await _getToken();
       if (token != null) {
-        // "Bearer" token dikirim di setiap request ke endpoint protected
         headers['Authorization'] = 'Bearer $token';
       }
     }
@@ -197,8 +199,10 @@ class ApiService {
     return await _get('/customers', queryParams: params);
   }
 
-  Future<Map<String, dynamic>> getRackLocations() async {
-    return await _get('/rack-locations');
+  Future<Map<String, dynamic>> getRackLocations({String? search}) async {
+    final params = <String, String>{};
+    if (search != null && search.isNotEmpty) params['search'] = search;
+    return await _get('/rack-locations', queryParams: params.isNotEmpty ? params : null);
   }
 
   // ============================================================
@@ -260,3 +264,5 @@ class ApiService {
     }
   }
 }
+
+
