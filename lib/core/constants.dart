@@ -17,7 +17,7 @@
 // ╚══════════════════════════════════════════════════════════════╝
 
 class AppConstants {
-  static const String baseUrl = 'https://ocelot-snugness-extradite.ngrok-free.dev';
+  static const String baseUrl = 'https://alkalize-unbend-muscular.ngrok-free.dev';
   // static const String baseUrl = 'http://localhost:8000';   // Windows/Chrome lokal
   // static const String baseUrl = 'http://10.0.2.2:8000';   // Android Emulator
 
