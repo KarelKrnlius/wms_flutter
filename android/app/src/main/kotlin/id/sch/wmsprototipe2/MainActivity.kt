@@ -1,4 +1,4 @@
-package com.example.wms_flutter
+package id.sch.wmsprototipe2
 
 import io.flutter.embedding.android.FlutterActivity
 

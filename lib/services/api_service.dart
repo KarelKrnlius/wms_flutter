@@ -1,10 +1,11 @@
-﻿import 'dart:convert';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants.dart';
 
 /// api_service.dart
-/// 
+///
 /// Ini adalah "jembatan" antara Flutter dan Laravel.
 /// Semua komunikasi HTTP ke API server dipusatkan di sini.
 ///
@@ -34,7 +35,7 @@ class ApiService {
   Future<Map<String, String>> _buildHeaders({bool withAuth = true}) async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'Accept':       'application/json',
+      'Accept': 'application/json',
       // Header wajib agar Ngrok tidak menampilkan halaman konfirmasi browser
       // saat request datang dari Flutter Web (Chrome) maupun mobile.
       'ngrok-skip-browser-warning': 'true',
@@ -67,8 +68,7 @@ class ApiService {
       body: jsonEncode({'login': loginInput, 'password': password}),
     );
 
-    // jsonDecode() = ubah teks JSON dari server menjadi Map Dart
-    return jsonDecode(response.body) as Map<String, dynamic>;
+    return _handleResponse(response);
   }
 
   /// Logout: hapus token di server.
@@ -78,14 +78,37 @@ class ApiService {
     await http.post(url, headers: headers);
   }
 
+  Future<Map<String, dynamic>> getSession() => _get('/me');
+
+  Future<Map<String, dynamic>> saveStudentIdentity({
+    required String name,
+    required String studentClass,
+    required String nis,
+  }) => _post('/student-identity', {
+    'name': name,
+    'class': studentClass,
+    'nis': nis,
+  });
+
+  Future<Map<String, dynamic>> resetStudentIdentity() =>
+      _delete('/student-identity');
+
   // ============================================================
   // DASHBOARD
   // ============================================================
 
   /// Ambil semua data dashboard (stat cards, chart, picking queue).
-  Future<Map<String, dynamic>> getDashboard() async {
-    return await _get('/dashboard');
+  Future<Map<String, dynamic>> getDashboard({
+    String periodTrx = 'hari_ini',
+    String period = 'seminggu_ini',
+  }) async {
+    return await _get(
+      '/dashboard',
+      queryParams: {'period_trx': periodTrx, 'period': period},
+    );
   }
+
+  Future<Map<String, dynamic>> getReportLinks() => _get('/report-links');
 
   // ============================================================
   // MASTER DATA BARANG
@@ -109,6 +132,9 @@ class ApiService {
     return await _get('/barang/${Uri.encodeComponent(sku)}');
   }
 
+  Future<Map<String, dynamic>> getItemLabelLink(String sku) =>
+      _get('/barang/${Uri.encodeComponent(sku)}/label-link');
+
   /// Ambil daftar kategori untuk dropdown filter.
   Future<Map<String, dynamic>> getKategori() async {
     return await _get('/barang/kategori');
@@ -118,11 +144,18 @@ class ApiService {
   // INBOUND
   // ============================================================
 
-  Future<Map<String, dynamic>> getInbound({int page = 1}) async {
-    return await _get('/inbound', queryParams: {'page': '$page'});
+  Future<Map<String, dynamic>> getInbound({
+    int page = 1,
+    String? search,
+  }) async {
+    final params = <String, String>{'page': '$page'};
+    if (search != null && search.trim().isNotEmpty) {
+      params['search'] = search.trim();
+    }
+    return await _get('/inbound', queryParams: params);
   }
 
-  Future<Map<String, dynamic>> getInboundDetail(int id) async {
+  Future<Map<String, dynamic>> getInboundDetail(String id) async {
     return await _get('/inbound/$id');
   }
 
@@ -130,30 +163,57 @@ class ApiService {
     return await _post('/inbound', data);
   }
 
+  Future<Map<String, dynamic>> getInboundFormOptions() =>
+      _get('/inbound-form-options');
+
   // ============================================================
   // OUTBOUND
   // ============================================================
 
   Future<Map<String, dynamic>> getOutbound({
     String? status,
+    String? search,
     int page = 1,
   }) async {
     final params = <String, String>{'page': '$page'};
     if (status != null) params['status'] = status;
+    if (search != null && search.trim().isNotEmpty) {
+      params['search'] = search.trim();
+    }
     return await _get('/outbound', queryParams: params);
   }
 
-  Future<Map<String, dynamic>> getOutboundDetail(int id) async {
+  Future<Map<String, dynamic>> getOutboundDetail(String id) async {
     return await _get('/outbound/$id');
   }
+
+  Future<Map<String, dynamic>> getOutboundDocumentLink(String id) =>
+      _get('/outbound/$id/document-link');
 
   Future<Map<String, dynamic>> createOutbound(Map<String, dynamic> data) async {
     return await _post('/outbound', data);
   }
 
-  Future<Map<String, dynamic>> completePicking(int id) async {
+  Future<Map<String, dynamic>> getOutboundFormOptions() =>
+      _get('/outbound-form-options');
+
+  Future<Map<String, dynamic>> completePicking(String id) async {
     return await _post('/outbound/$id/picking-complete', {});
   }
+
+  Future<Map<String, dynamic>> cancelInbound(String id, String reason) =>
+      _post('/inbound/$id/cancel', {'reason': reason});
+  Future<Map<String, dynamic>> cancelOutbound(String id, String reason) =>
+      _post('/outbound/$id/cancel', {'reason': reason});
+  Future<Map<String, dynamic>> getActivityLogs({int page = 1}) =>
+      _get('/activity-logs', queryParams: {'page': '$page'});
+  Future<Map<String, dynamic>> getPracticeSessions() =>
+      _get('/practice-sessions');
+  Future<Map<String, dynamic>> createPracticeSession(
+    Map<String, dynamic> data,
+  ) => _post('/practice-sessions', data);
+  Future<Map<String, dynamic>> closePracticeSession(String id) =>
+      _post('/practice-sessions/$id/close', {});
 
   // ============================================================
   // INVENTORY / KARTU STOK
@@ -175,12 +235,10 @@ class ApiService {
     return await _get('/stock-opname', queryParams: {'page': '$page'});
   }
 
-  Future<Map<String, dynamic>> createStockOpname(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> createStockOpname(
+    Map<String, dynamic> data,
+  ) async {
     return await _post('/stock-opname', data);
-  }
-
-  Future<Map<String, dynamic>> deleteStockOpname(int id) async {
-    return await _delete('/stock-opname/$id');
   }
 
   // ============================================================
@@ -193,17 +251,105 @@ class ApiService {
     return await _get('/suppliers', queryParams: params);
   }
 
+  Future<Map<String, dynamic>> createSupplier(Map<String, dynamic> data) =>
+      _post('/suppliers', data);
+  Future<Map<String, dynamic>> updateSupplier(
+    String id,
+    Map<String, dynamic> data,
+  ) => _put('/suppliers/$id', data);
+
   Future<Map<String, dynamic>> getCustomers({String? search}) async {
     final params = <String, String>{'per_page': '100'};
     if (search != null && search.isNotEmpty) params['search'] = search;
     return await _get('/customers', queryParams: params);
   }
 
+  Future<Map<String, dynamic>> createCustomer(Map<String, dynamic> data) =>
+      _post('/customers', data);
+  Future<Map<String, dynamic>> updateCustomer(
+    String id,
+    Map<String, dynamic> data,
+  ) => _put('/customers/$id', data);
+
+  Future<Map<String, dynamic>> createUnit(String name) =>
+      _post('/units', {'Nama': name});
+
   Future<Map<String, dynamic>> getRackLocations({String? search}) async {
     final params = <String, String>{};
     if (search != null && search.isNotEmpty) params['search'] = search;
-    return await _get('/rack-locations', queryParams: params.isNotEmpty ? params : null);
+    return await _get(
+      '/rack-locations',
+      queryParams: params.isNotEmpty ? params : null,
+    );
   }
+
+  Future<Map<String, dynamic>> getRackDetail(String id) =>
+      _get('/rack-locations/$id');
+
+  /// Mengambil isi foto melalui API agar tetap berfungsi pada APK, Windows,
+  /// dan Flutter Web meskipun backend diakses melalui ngrok.
+  Future<Uint8List> getRackPhotoBytes(String id) async {
+    final url = Uri.parse('${AppConstants.apiUrl}/rack-locations/$id/photo');
+    final headers = await _buildHeaders();
+    headers.remove('Content-Type');
+    headers['Accept'] = 'image/*';
+    final response = await http.get(url, headers: headers);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return response.bodyBytes;
+    }
+    if (response.statusCode == 404) {
+      throw Exception('Foto rak tidak ditemukan atau sudah dihapus.');
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Sesi habis. Silakan login ulang.');
+    }
+    throw Exception(
+      'Foto rak gagal dimuat (${response.statusCode}). Tarik layar ke bawah untuk mencoba lagi.',
+    );
+  }
+
+  Future<Map<String, dynamic>> moveRackItem(
+    String id,
+    Map<String, dynamic> data,
+  ) => _post('/rack-locations/$id/move-item', data);
+
+  Future<Map<String, dynamic>> createRack(Map<String, dynamic> data) =>
+      _post('/rack-locations', data);
+  Future<Map<String, dynamic>> updateRack(
+    String id,
+    Map<String, dynamic> data,
+  ) => _put('/rack-locations/$id', data);
+  Future<Map<String, dynamic>> deleteRack(String id) =>
+      _delete('/rack-locations/$id');
+
+  Future<Map<String, dynamic>> uploadRackPhoto(
+    String id,
+    String? filePath,
+    List<int>? bytes,
+    String fileName,
+  ) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('${AppConstants.apiUrl}/rack-locations/$id/photo'),
+    );
+    final headers = await _buildHeaders();
+    headers.remove('Content-Type');
+    request.headers.addAll(headers);
+    if (bytes != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes('foto', bytes, filename: fileName),
+      );
+    } else if (filePath != null) {
+      request.files.add(await http.MultipartFile.fromPath('foto', filePath));
+    } else {
+      throw Exception('File foto tidak dapat dibaca dari perangkat ini.');
+    }
+    final streamed = await request.send();
+    return _handleResponse(await http.Response.fromStream(streamed));
+  }
+
+  Future<Map<String, dynamic>> deleteRackPhoto(String id) =>
+      _delete('/rack-locations/$id/photo');
 
   // ============================================================
   // PRIVATE BASE METHODS (GET, POST, DELETE)
@@ -246,9 +392,34 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  Future<Map<String, dynamic>> _put(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
+    final url = Uri.parse('${AppConstants.apiUrl}$endpoint');
+    final headers = await _buildHeaders();
+    final response = await http.put(
+      url,
+      headers: headers,
+      body: jsonEncode(body),
+    );
+    return _handleResponse(response);
+  }
+
   /// Proses response: jika OK parse JSON, jika error lempar exception.
   Map<String, dynamic> _handleResponse(http.Response response) {
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    Map<String, dynamic> body;
+    try {
+      final decoded = jsonDecode(response.body);
+      body = decoded is Map<String, dynamic>
+          ? decoded
+          : <String, dynamic>{'data': decoded};
+    } on FormatException {
+      throw Exception(
+        'Server tidak mengembalikan JSON yang valid (${response.statusCode}). '
+        'Periksa URL API dan pastikan backend Laravel aktif.',
+      );
+    }
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
     } else if (response.statusCode == 401) {
@@ -257,12 +428,53 @@ class ApiService {
       // Validation error dari Laravel
       final errors = body['errors'] as Map<String, dynamic>?;
       final firstError = errors?.values.first;
-      final msg = firstError is List ? firstError.first : (body['message'] ?? 'Validasi gagal.');
-      throw Exception(msg);
+      final rawMessage = firstError is List
+          ? firstError.first
+          : (body['message'] ?? 'Validasi gagal.');
+      throw Exception(_friendlyValidationMessage(rawMessage.toString()));
+    } else if (response.statusCode == 403) {
+      throw Exception(
+        body['message'] ??
+            'Akun ini tidak memiliki izin untuk tindakan tersebut.',
+      );
+    } else if (response.statusCode == 404) {
+      throw Exception(
+        body['message'] ??
+            'Data yang diminta tidak ditemukan atau sudah dihapus.',
+      );
+    } else if (response.statusCode == 429) {
+      throw Exception(
+        'Terlalu banyak percobaan. Tunggu sekitar satu menit lalu coba kembali.',
+      );
+    } else if (response.statusCode >= 500) {
+      // Jangan tampilkan SQL, stack trace, path server, atau detail internal
+      // Laravel kepada pengguna aplikasi.
+      throw Exception(
+        'Layanan WMS sedang tidak tersedia. Pastikan Laravel dan PostgreSQL '
+        'aktif, lalu coba lagi.',
+      );
     } else {
       throw Exception(body['message'] ?? 'Terjadi kesalahan server.');
     }
   }
+
+  String _friendlyValidationMessage(String message) {
+    final lower = message.toLowerCase();
+    if (lower.contains('reason') &&
+        (lower.contains('10') || lower.contains('at least'))) {
+      return 'Alasan pembatalan minimal 10 karakter agar dapat diproses.';
+    }
+    if (lower.contains('foto') &&
+        (lower.contains('image') || lower.contains('mimes'))) {
+      return 'Format foto tidak didukung. Gunakan JPG, JPEG, PNG, atau WebP.';
+    }
+    if (lower.contains('foto') &&
+        (lower.contains('2048') || lower.contains('kilobytes'))) {
+      return 'Ukuran foto maksimal 2 MB. Kompres atau pilih foto lain.';
+    }
+    if (lower.contains('required')) {
+      return 'Masih ada data wajib yang belum diisi. Periksa kembali kolom yang ditandai.';
+    }
+    return message;
+  }
 }
-
-

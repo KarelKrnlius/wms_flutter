@@ -1,4 +1,4 @@
-﻿// constants.dart
+// constants.dart
 //
 // ╔══════════════════════════════════════════════════════════════╗
 // ║  CARA GANTI URL SESUAI ENVIRONMENT                          ║
@@ -17,11 +17,15 @@
 // ╚══════════════════════════════════════════════════════════════╝
 
 class AppConstants {
-  static const String baseUrl = 'https://alkalize-unbend-muscular.ngrok-free.dev';
-  // static const String baseUrl = 'http://localhost:8000';   // Windows/Chrome lokal
-  // static const String baseUrl = 'http://10.0.2.2:8000';   // Android Emulator
+  /// Set saat build/run, contoh:
+  /// flutter run --dart-define=WMS_API_BASE_URL=http://10.0.2.2:8000
+  /// flutter run -d windows --dart-define=WMS_API_BASE_URL=http://localhost:8000
+  static const String baseUrl = String.fromEnvironment(
+    'WMS_API_BASE_URL',
+    defaultValue: 'http://localhost:8000',
+  );
 
-  static const String apiUrl   = '$baseUrl/api';
+  static const String apiUrl = '$baseUrl/api/v1';
   static const String tokenKey = 'wms_token';
-  static const String userKey  = 'wms_user';
+  static const String userKey = 'wms_user';
 }

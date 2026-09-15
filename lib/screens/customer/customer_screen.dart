@@ -1,7 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
 import '../../services/api_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/common_widgets.dart';
+import '../shared/quick_party_dialog.dart';
 
 /// CustomerScreen - Direktori Customer (Read-Only)
 /// Meniru tampilan web: Nama, No.Telepon, Email, Alamat, Total Outbound
@@ -20,17 +22,30 @@ class _CustomerScreenState extends State<CustomerScreen> {
   String? _error;
   String _search = '';
   int _total = 0;
+  bool _isAdmin = false;
 
   final _searchCtrl = TextEditingController();
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+    AuthService().isAdmin().then((value) {
+      if (mounted) setState(() => _isAdmin = value);
+    });
+  }
 
   @override
-  void dispose() { _searchCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final res = await ApiService().getCustomers(
         search: _search.isEmpty ? null : _search,
@@ -38,8 +53,8 @@ class _CustomerScreenState extends State<CustomerScreen> {
       final data = (res['data'] as List?) ?? [];
       final meta = (res['meta'] as Map<String, dynamic>?) ?? {};
       setState(() {
-        _items  = data;
-        _total  = meta['total'] ?? data.length;
+        _items = data;
+        _total = meta['total'] ?? data.length;
         _loading = false;
       });
     } catch (e) {
@@ -77,7 +92,11 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline, size: 16, color: AppColors.primary),
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -86,14 +105,18 @@ class _CustomerScreenState extends State<CustomerScreen> {
                           Text(
                             'Master Data Customer (Read-Only Directory)',
                             style: TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
                             ),
                           ),
                           SizedBox(height: 2),
                           Text(
                             'Direktori Customer bersifat Read-Only. Data bertambah otomatis saat transaksi Outbound dibuat.',
-                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ],
                       ),
@@ -111,17 +134,32 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       color: AppColors.surfaceLow,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.storefront, size: 16, color: AppColors.primary),
+                    child: const Icon(
+                      Icons.storefront,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Daftar Pelanggan (Customer)',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                        Text('Seluruh entitas customer yang tercatat dari transaksi outbound.',
-                            style: TextStyle(fontSize: 11, color: AppColors.textHint)),
+                        Text(
+                          'Daftar Pelanggan (Customer)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          'Seluruh entitas customer yang tercatat dari transaksi outbound.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textHint,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -137,7 +175,11 @@ class _CustomerScreenState extends State<CustomerScreen> {
                   style: const TextStyle(fontSize: 13),
                   decoration: InputDecoration(
                     hintText: 'Cari nama / kontak / alamat...',
-                    prefixIcon: const Icon(Icons.search, size: 18, color: AppColors.textHint),
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      size: 18,
+                      color: AppColors.textHint,
+                    ),
                     suffixIcon: _search.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear, size: 16),
@@ -149,7 +191,10 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         : null,
                     filled: true,
                     fillColor: AppColors.background,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: const BorderSide(color: AppColors.border),
@@ -160,7 +205,10 @@ class _CustomerScreenState extends State<CustomerScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
@@ -177,12 +225,18 @@ class _CustomerScreenState extends State<CustomerScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                const Icon(Icons.storefront, size: 13, color: AppColors.textHint),
+                const Icon(
+                  Icons.storefront,
+                  size: 13,
+                  color: AppColors.textHint,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   '$_total customer terdaftar',
                   style: const TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -194,26 +248,43 @@ class _CustomerScreenState extends State<CustomerScreen> {
           child: _loading
               ? const LoadingView()
               : _error != null
-                  ? ErrorView(message: _error!, onRetry: _load)
-                  : _items.isEmpty
-                      ? EmptyView(
-                          message: _search.isNotEmpty
-                              ? 'Tidak ada customer dengan kata kunci "$_search"'
-                              : 'Belum ada data customer yang tercatat dari proses Outbound.',
-                          icon: Icons.storefront_outlined,
-                        )
-                      : RefreshIndicator(
-                          onRefresh: _load,
-                          color: AppColors.primary,
-                          child: ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _items.length,
-                            itemBuilder: (ctx, i) {
-                              final c = _items[i] as Map<String, dynamic>;
-                              return _CustomerCard(customer: c);
-                            },
-                          ),
-                        ),
+              ? ErrorView(message: _error!, onRetry: _load)
+              : _items.isEmpty
+              ? EmptyView(
+                  message: _search.isNotEmpty
+                      ? 'Tidak ada customer dengan kata kunci "$_search"'
+                      : 'Belum ada data customer yang tercatat dari proses Outbound.',
+                  icon: Icons.storefront_outlined,
+                )
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  color: AppColors.primary,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _items.length,
+                    itemBuilder: (ctx, i) {
+                      final c = _items[i] as Map<String, dynamic>;
+                      return _CustomerCard(
+                        customer: c,
+                        onEdit: _isAdmin
+                            ? () async {
+                                final changed = await showQuickPartyDialog(
+                                  context,
+                                  supplier: false,
+                                  initial: c,
+                                  onSave: (payload) =>
+                                      ApiService().updateCustomer(
+                                        c['id'].toString(),
+                                        payload,
+                                      ),
+                                );
+                                if (changed != null) _load();
+                              }
+                            : null,
+                      );
+                    },
+                  ),
+                ),
         ),
       ],
     );
@@ -222,7 +293,8 @@ class _CustomerScreenState extends State<CustomerScreen> {
 
 class _CustomerCard extends StatelessWidget {
   final Map<String, dynamic> customer;
-  const _CustomerCard({required this.customer});
+  final VoidCallback? onEdit;
+  const _CustomerCard({required this.customer, this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -238,38 +310,56 @@ class _CustomerCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 40, height: 40,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: AppColors.surfaceLow,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.storefront, size: 20, color: AppColors.textSecondary),
+                  child: const Icon(
+                    Icons.storefront,
+                    size: 20,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     customer['nama'] ?? '-',
                     style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
                 // badge-warning = amber (sesuai web)
                 _OutboundBadge(count: total),
+                if (onEdit != null)
+                  IconButton(
+                    onPressed: onEdit,
+                    tooltip: 'Edit customer',
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                  ),
               ],
             ),
             const SizedBox(height: 12),
             const Divider(height: 1),
             const SizedBox(height: 10),
             // Kolom sesuai web: Telepon, Email, Alamat
-            _infoRow(Icons.phone_outlined, 'Telepon',
-                _str(customer['no_kontak'])),
+            _infoRow(
+              Icons.phone_outlined,
+              'Telepon',
+              _str(customer['no_kontak']),
+            ),
             const SizedBox(height: 6),
-            _infoRow(Icons.email_outlined, 'Email',
-                _str(customer['email'])),
+            _infoRow(Icons.email_outlined, 'Email', _str(customer['email'])),
             const SizedBox(height: 6),
-            _infoRow(Icons.location_on_outlined, 'Alamat',
-                _str(customer['alamat'])),
+            _infoRow(
+              Icons.location_on_outlined,
+              'Alamat',
+              _str(customer['alamat']),
+            ),
           ],
         ),
       ),
@@ -287,15 +377,27 @@ class _CustomerCard extends StatelessWidget {
         const SizedBox(width: 8),
         SizedBox(
           width: 60,
-          child: Text(label,
-              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ),
-        const Text(': ', style: TextStyle(color: AppColors.textHint, fontSize: 11)),
+        const Text(
+          ': ',
+          style: TextStyle(color: AppColors.textHint, fontSize: 11),
+        ),
         Expanded(
-          child: Text(value,
-              style: const TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textPrimary,
-              )),
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
         ),
       ],
     );
@@ -324,7 +426,9 @@ class _OutboundBadge extends StatelessWidget {
           Text(
             '$count transaksi',
             style: const TextStyle(
-              fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF92400E),
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF92400E),
             ),
           ),
         ],

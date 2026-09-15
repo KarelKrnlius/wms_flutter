@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
 
 /// WmsCard
@@ -45,38 +45,101 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 720;
     return WmsCard(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
+      padding: EdgeInsets.all(compact ? 13 : 16),
+      child: compact
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: 11, fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary, letterSpacing: 0.3)),
-                const SizedBox(height: 4),
-                Text(value,
-                    style: TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.w800,
-                        color: valueColor ?? AppColors.textPrimary, letterSpacing: -0.5)),
-                if (subtitle != null)
-                  Text(subtitle!,
-                      style: const TextStyle(fontSize: 11, color: AppColors.textHint)),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _label()),
+                    const SizedBox(width: 8),
+                    _iconBox(36),
+                  ],
+                ),
+                const Spacer(),
+                _value(20),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  _subtitle(),
+                ],
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _label(),
+                      const SizedBox(height: 4),
+                      _value(22),
+                      if (subtitle != null) _subtitle(),
+                    ],
+                  ),
+                ),
+                _iconBox(40),
               ],
             ),
-          ),
-          Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, color: iconColor, size: 18),
-          ),
-        ],
-      ),
     );
   }
+
+  Widget _label() => Text(
+    label,
+    maxLines: 2,
+    overflow: TextOverflow.ellipsis,
+    style: const TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w600,
+      color: AppColors.textSecondary,
+      letterSpacing: 0.3,
+      height: 1.2,
+    ),
+  );
+
+  Widget _value(double size) => SizedBox(
+    width: double.infinity,
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        value,
+        maxLines: 1,
+        style: TextStyle(
+          fontSize: size,
+          fontWeight: FontWeight.w800,
+          color: valueColor ?? AppColors.textPrimary,
+          letterSpacing: -0.5,
+        ),
+      ),
+    ),
+  );
+
+  Widget _subtitle() => Text(
+    subtitle!,
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: const TextStyle(
+      fontSize: 10.5,
+      color: AppColors.textHint,
+      height: 1.2,
+    ),
+  );
+
+  Widget _iconBox(double size) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      color: iconBg,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Icon(icon, color: iconColor, size: 18),
+  );
 }
 
 /// BadgeType
@@ -87,7 +150,11 @@ class StatusBadge extends StatelessWidget {
   final String label;
   final BadgeType type;
 
-  const StatusBadge({super.key, required this.label, this.type = BadgeType.neutral});
+  const StatusBadge({
+    super.key,
+    required this.label,
+    this.type = BadgeType.neutral,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -96,29 +163,37 @@ class StatusBadge extends StatelessWidget {
 
     switch (type) {
       case BadgeType.success:
-        bg   = AppColors.successBg;
+        bg = AppColors.successBg;
         text = const Color(0xFF065F46);
       case BadgeType.danger:
-        bg   = AppColors.dangerBg;
+        bg = AppColors.dangerBg;
         text = const Color(0xFF991B1B);
       case BadgeType.warning:
-        bg   = AppColors.warningBg;
+        bg = AppColors.warningBg;
         text = const Color(0xFF92400E);
       case BadgeType.primary:
-        bg   = const Color(0xFFDBEAFE);
+        bg = const Color(0xFFDBEAFE);
         text = AppColors.primary;
       case BadgeType.neutral:
-        bg   = AppColors.surfaceLow;
+        bg = AppColors.surfaceLow;
         text = AppColors.textSecondary;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 10, fontWeight: FontWeight.w700,
-              color: text, letterSpacing: 0.2)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: text,
+          letterSpacing: 0.2,
+        ),
+      ),
     );
   }
 }
@@ -155,15 +230,32 @@ class WmsButton extends StatelessWidget {
         ),
         child: isLoading
             ? const SizedBox(
-                width: 20, height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (icon != null) ...[Icon(icon, size: 16), const SizedBox(width: 8)],
-                  Text(label,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                  if (icon != null) ...[
+                    Icon(icon, size: 16),
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                 ],
               ),
       ),
@@ -199,9 +291,14 @@ class WmsTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
+        ),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
@@ -239,9 +336,11 @@ class ErrorView extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline, size: 48, color: AppColors.danger),
             const SizedBox(height: 12),
-            Text(message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary)),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
             if (onRetry != null) ...[
               const SizedBox(height: 16),
               ElevatedButton.icon(
@@ -290,9 +389,14 @@ class EmptyView extends StatelessWidget {
           children: [
             Icon(icon, size: 48, color: AppColors.textHint),
             const SizedBox(height: 12),
-            Text(message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
           ],
         ),
       ),

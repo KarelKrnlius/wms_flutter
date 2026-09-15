@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
 import '../../services/api_service.dart';
 import '../../widgets/common_widgets.dart';
@@ -22,13 +22,22 @@ class _KartuStokDetailScreenState extends State<KartuStokDetailScreen> {
   String? _error;
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final res = await ApiService().getKartuStokDetail(widget.sku);
-      setState(() { _data = res['data']; _loading = false; });
+      setState(() {
+        _data = res['data'];
+        _loading = false;
+      });
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');
@@ -45,11 +54,19 @@ class _KartuStokDetailScreenState extends State<KartuStokDetailScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.namaBarang ?? widget.sku,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                overflow: TextOverflow.ellipsis),
-            Text('Kartu Stok — ${widget.sku}',
-                style: const TextStyle(fontSize: 10, color: AppColors.textHint, fontFamily: 'monospace')),
+            Text(
+              widget.namaBarang ?? widget.sku,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              'Kartu Stok — ${widget.sku}',
+              style: const TextStyle(
+                fontSize: 10,
+                color: AppColors.textHint,
+                fontFamily: 'monospace',
+              ),
+            ),
           ],
         ),
         backgroundColor: AppColors.surface,
@@ -61,8 +78,8 @@ class _KartuStokDetailScreenState extends State<KartuStokDetailScreen> {
       body: _loading
           ? const LoadingView()
           : _error != null
-              ? ErrorView(message: _error!, onRetry: _load)
-              : _buildBody(),
+          ? ErrorView(message: _error!, onRetry: _load)
+          : _buildBody(),
     );
   }
 
@@ -94,16 +111,35 @@ class _KartuStokDetailScreenState extends State<KartuStokDetailScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(barang['nama'] ?? '-',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                          Text(
+                            barang['nama'] ?? '-',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
                           const SizedBox(height: 10),
                           // Grid 4 kolom: SKU | Kategori | Lokasi Rak | Min. Stok
                           Row(
                             children: [
-                              _infoCell('SKU', barang['sku'] ?? '-', mono: true, color: AppColors.primary),
+                              _infoCell(
+                                'SKU',
+                                barang['sku'] ?? '-',
+                                mono: true,
+                                color: AppColors.primary,
+                              ),
                               _infoCell('Kategori', barang['kategori'] ?? '-'),
-                              _infoCell('Lokasi Rak', barang['rack'] ?? '-', mono: true),
-                              _infoCell('Min. Stok', '$minStok unit', mono: true),
+                              _infoCell(
+                                'Lokasi Rak',
+                                barang['rack'] ?? '-',
+                                mono: true,
+                              ),
+                              _infoCell(
+                                'Min. Stok',
+                                '$minStok ${barang['satuan'] ?? 'PCS'}',
+                                mono: true,
+                              ),
                             ],
                           ),
                         ],
@@ -114,16 +150,37 @@ class _KartuStokDetailScreenState extends State<KartuStokDetailScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text('Stok Saat Ini',
-                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
-                                letterSpacing: 1, color: AppColors.textHint)),
-                        Text('$stok',
-                            style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900,
-                                fontFamily: 'monospace', color: stokColor)),
-                        const Text('unit', style: TextStyle(fontSize: 11, color: AppColors.textHint)),
+                        const Text(
+                          'Stok Saat Ini',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                        Text(
+                          '$stok',
+                          style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'monospace',
+                            color: stokColor,
+                          ),
+                        ),
+                        Text(
+                          barang['satuan'] ?? 'PCS',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textHint,
+                          ),
+                        ),
                         if (isReorder) ...[
                           const SizedBox(height: 4),
-                          StatusBadge(label: '⚠ Reorder Point', type: BadgeType.warning),
+                          StatusBadge(
+                            label: '⚠ Reorder Point',
+                            type: BadgeType.warning,
+                          ),
                         ],
                       ],
                     ),
@@ -135,11 +192,23 @@ class _KartuStokDetailScreenState extends State<KartuStokDetailScreen> {
                 // Summary row
                 Row(
                   children: [
-                    _statMini('Total Mutasi', '${mutations.length}', AppColors.primary),
+                    _statMini(
+                      'Total Mutasi',
+                      '${mutations.length}',
+                      AppColors.primary,
+                    ),
                     _divMini(),
-                    _statMini('Inbound', '${mutations.where((m) => m['jenis'] == 'Inbound').length}', AppColors.success),
+                    _statMini(
+                      'Inbound',
+                      '${mutations.where((m) => m['jenis'] == 'Inbound').length}',
+                      AppColors.success,
+                    ),
                     _divMini(),
-                    _statMini('Outbound', '${mutations.where((m) => m['jenis'] == 'Outbound').length}', AppColors.danger),
+                    _statMini(
+                      'Outbound',
+                      '${mutations.where((m) => m['jenis'] == 'Outbound').length}',
+                      AppColors.danger,
+                    ),
                   ],
                 ),
               ],
@@ -153,35 +222,52 @@ class _KartuStokDetailScreenState extends State<KartuStokDetailScreen> {
             children: [
               const Icon(Icons.timeline, size: 16, color: AppColors.primary),
               const SizedBox(width: 8),
-              const Text('Timeline Mutasi Stok',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+              const Text(
+                'Timeline Mutasi Stok',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
               const Spacer(),
-              StatusBadge(label: '${mutations.length} mutasi', type: BadgeType.neutral),
+              StatusBadge(
+                label: '${mutations.length} mutasi',
+                type: BadgeType.neutral,
+              ),
             ],
           ),
           const SizedBox(height: 4),
-          const Text('Terbaru di atas. Saldo dihitung kumulatif.',
-              style: TextStyle(fontSize: 11, color: AppColors.textHint)),
+          const Text(
+            'Terbaru di atas. Saldo dihitung kumulatif.',
+            style: TextStyle(fontSize: 11, color: AppColors.textHint),
+          ),
           const SizedBox(height: 10),
 
           // ---- TIMELINE LIST ----
           if (mutations.isEmpty)
-            const EmptyView(message: 'Belum ada mutasi stok', icon: Icons.timeline)
+            const EmptyView(
+              message: 'Belum ada mutasi stok',
+              icon: Icons.timeline,
+            )
           else
             WmsCard(
               child: Column(
                 children: mutations.asMap().entries.map((entry) {
                   final idx = entry.key;
-                  final m   = entry.value as Map<String, dynamic>;
-                  final isInbound  = m['jenis'] == 'Inbound';
-                  final qtyIn  = m['qty_in']  ?? 0;
+                  final m = entry.value as Map<String, dynamic>;
+                  final isInbound = m['jenis'] == 'Inbound';
+                  final qtyIn = m['qty_in'] ?? 0;
                   final qtyOut = m['qty_out'] ?? 0;
-                  final saldo  = m['saldo']   ?? 0;
+                  final saldo = m['saldo'] ?? 0;
 
                   return Column(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -192,33 +278,51 @@ class _KartuStokDetailScreenState extends State<KartuStokDetailScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 3,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: isInbound ? AppColors.successBg : AppColors.dangerBg,
+                                      color: isInbound
+                                          ? AppColors.successBg
+                                          : AppColors.dangerBg,
                                       borderRadius: BorderRadius.circular(5),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
-                                          isInbound ? Icons.arrow_downward : Icons.arrow_upward,
+                                          isInbound
+                                              ? Icons.arrow_downward
+                                              : Icons.arrow_upward,
                                           size: 10,
-                                          color: isInbound ? AppColors.success : AppColors.danger,
+                                          color: isInbound
+                                              ? AppColors.success
+                                              : AppColors.danger,
                                         ),
                                         const SizedBox(width: 3),
                                         Text(
                                           isInbound ? 'IN' : 'OUT',
                                           style: TextStyle(
-                                            fontSize: 9, fontWeight: FontWeight.w800,
-                                            color: isInbound ? AppColors.success : AppColors.danger,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w800,
+                                            color: isInbound
+                                                ? AppColors.success
+                                                : AppColors.danger,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(m['tanggal'] ?? '-',
-                                      style: const TextStyle(fontSize: 10, color: AppColors.textHint, fontFamily: 'monospace')),
+                                  Text(
+                                    m['tanggal'] ?? '-',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.textHint,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -227,13 +331,23 @@ class _KartuStokDetailScreenState extends State<KartuStokDetailScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(m['no_ref'] ?? '-',
-                                      style: const TextStyle(
-                                          fontSize: 11, fontFamily: 'monospace',
-                                          fontWeight: FontWeight.w700, color: AppColors.primary)),
+                                  Text(
+                                    m['no_ref'] ?? '-',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontFamily: 'monospace',
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
                                   if ((m['operator'] ?? '-') != '-')
-                                    Text(m['operator'],
-                                        style: const TextStyle(fontSize: 10, color: AppColors.textHint)),
+                                    Text(
+                                      m['operator'],
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.textHint,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -244,15 +358,25 @@ class _KartuStokDetailScreenState extends State<KartuStokDetailScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   if (qtyIn > 0)
-                                    Text('+$qtyIn',
-                                        style: const TextStyle(
-                                            fontSize: 13, fontWeight: FontWeight.w800,
-                                            color: AppColors.success, fontFamily: 'monospace')),
+                                    Text(
+                                      '+$qtyIn',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.success,
+                                        fontFamily: 'monospace',
+                                      ),
+                                    ),
                                   if (qtyOut > 0)
-                                    Text('-$qtyOut',
-                                        style: const TextStyle(
-                                            fontSize: 13, fontWeight: FontWeight.w800,
-                                            color: AppColors.danger, fontFamily: 'monospace')),
+                                    Text(
+                                      '-$qtyOut',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.danger,
+                                        fontFamily: 'monospace',
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -262,12 +386,24 @@ class _KartuStokDetailScreenState extends State<KartuStokDetailScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  const Text('Saldo', style: TextStyle(fontSize: 9, color: AppColors.textHint)),
-                                  Text('$saldo',
-                                      style: TextStyle(
-                                          fontSize: 14, fontWeight: FontWeight.w900,
-                                          fontFamily: 'monospace',
-                                          color: saldo > 0 ? AppColors.textPrimary : AppColors.danger)),
+                                  const Text(
+                                    'Saldo',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      color: AppColors.textHint,
+                                    ),
+                                  ),
+                                  Text(
+                                    '$saldo',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w900,
+                                      fontFamily: 'monospace',
+                                      color: saldo > 0
+                                          ? AppColors.textPrimary
+                                          : AppColors.danger,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -287,23 +423,32 @@ class _KartuStokDetailScreenState extends State<KartuStokDetailScreen> {
   }
 
   // Grid cell untuk info barang (meniru web 4-kolom)
-  Widget _infoCell(String label, String value, {bool mono = false, Color? color}) {
+  Widget _infoCell(
+    String label,
+    String value, {
+    bool mono = false,
+    Color? color,
+  }) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: const TextStyle(fontSize: 10, color: AppColors.textHint)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: AppColors.textHint),
+          ),
           const SizedBox(height: 2),
-          Text(value,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: color ?? AppColors.textPrimary,
-                fontFamily: mono ? 'monospace' : null,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: color ?? AppColors.textPrimary,
+              fontFamily: mono ? 'monospace' : null,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
@@ -313,15 +458,22 @@ class _KartuStokDetailScreenState extends State<KartuStokDetailScreen> {
     return Expanded(
       child: Column(
         children: [
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textHint)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: AppColors.textHint),
+          ),
         ],
       ),
     );
   }
 
-  Widget _divMini() => Container(
-    width: 1, height: 32, color: AppColors.border,
-  );
+  Widget _divMini() => Container(width: 1, height: 32, color: AppColors.border);
 }
-

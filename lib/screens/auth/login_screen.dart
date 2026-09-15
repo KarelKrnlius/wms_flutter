@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../main_scaffold.dart';
 import '../../widgets/common_widgets.dart';
+import 'student_identity_dialog.dart';
 
 /// LoginScreen - Halaman login WMS Flutter
 
@@ -15,11 +16,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _loginCtrl  = TextEditingController();
-  final _passCtrl   = TextEditingController();
+  final _loginCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
   final _formGlobal = GlobalKey<FormState>();
 
-  bool _isLoading  = false;
+  bool _isLoading = false;
   bool _obscurePwd = true;
   String? _errorMsg;
 
@@ -35,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() {
       _isLoading = true;
-      _errorMsg  = null;
+      _errorMsg = null;
     });
 
     try {
@@ -51,6 +52,10 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (!mounted) return;
+        if (result['requires_student_identity'] == true) {
+          final completed = await showStudentIdentityDialog(context);
+          if (!completed || !mounted) return;
+        }
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const MainScaffold()),
           (route) => false,
@@ -61,12 +66,24 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       setState(() => _errorMsg = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.sizeOf(context).width < 1000) return _loginPanel();
+    return Scaffold(
+      body: Row(
+        children: [
+          const Expanded(flex: 6, child: _DesktopLoginHero()),
+          Expanded(flex: 5, child: _loginPanel()),
+        ],
+      ),
+    );
+  }
+
+  Widget _loginPanel() {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -89,7 +106,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: AppColors.dark,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.warehouse, color: Colors.white, size: 22),
+                      child: const Icon(
+                        Icons.warehouse,
+                        color: Colors.white,
+                        size: 22,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     const Column(
@@ -135,7 +156,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 4),
                       const Text(
                         'Gunakan kredensial yang diberikan oleh instruktur.',
-                        style: TextStyle(fontSize: 12, color: AppColors.textHint),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textHint,
+                        ),
                       ),
                       const SizedBox(height: 20),
 
@@ -146,11 +170,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.dangerBg,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+                            border: Border.all(
+                              color: AppColors.danger.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.warning_amber, size: 16, color: AppColors.danger),
+                              const Icon(
+                                Icons.warning_amber,
+                                size: 16,
+                                color: AppColors.danger,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -173,8 +203,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         hint: 'admin / siswa',
                         controller: _loginCtrl,
                         prefixIcon: Icons.person_outline,
-                        validator: (v) =>
-                            v == null || v.isEmpty ? 'Username wajib diisi' : null,
+                        validator: (v) => v == null || v.isEmpty
+                            ? 'Username wajib diisi'
+                            : null,
                       ),
 
                       const SizedBox(height: 16),
@@ -195,19 +226,27 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextFormField(
                             controller: _passCtrl,
                             obscureText: _obscurePwd,
-                            validator: (v) =>
-                                v == null || v.isEmpty ? 'Password wajib diisi' : null,
+                            validator: (v) => v == null || v.isEmpty
+                                ? 'Password wajib diisi'
+                                : null,
                             style: const TextStyle(fontSize: 13),
                             decoration: InputDecoration(
                               hintText: '••••••••',
-                              prefixIcon: const Icon(Icons.lock_outline, size: 16, color: AppColors.textHint),
+                              prefixIcon: const Icon(
+                                Icons.lock_outline,
+                                size: 16,
+                                color: AppColors.textHint,
+                              ),
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscurePwd ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                  _obscurePwd
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
                                   size: 16,
                                   color: AppColors.textHint,
                                 ),
-                                onPressed: () => setState(() => _obscurePwd = !_obscurePwd),
+                                onPressed: () =>
+                                    setState(() => _obscurePwd = !_obscurePwd),
                               ),
                             ),
                           ),
@@ -236,7 +275,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.info_outline, size: 14, color: AppColors.primary),
+                          Icon(
+                            Icons.info_outline,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
                           SizedBox(width: 6),
                           Text(
                             'Kredensial Default',
@@ -276,11 +319,17 @@ class _LoginScreenState extends State<LoginScreen> {
           width: 90,
           child: Text(
             role,
-            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
         _codeChip(user),
-        const Text(' / ', style: TextStyle(fontSize: 11, color: AppColors.textHint)),
+        const Text(
+          ' / ',
+          style: TextStyle(fontSize: 11, color: AppColors.textHint),
+        ),
         _codeChip(pass),
       ],
     );
@@ -305,4 +354,112 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+}
+
+class _DesktopLoginHero extends StatelessWidget {
+  const _DesktopLoginHero();
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: AppColors.dark,
+      child: Stack(
+        children: [
+          Positioned(
+            right: -120,
+            top: -80,
+            child: Container(
+              width: 420,
+              height: 420,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary.withValues(alpha: .22),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(64),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(
+                    Icons.warehouse,
+                    size: 32,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                const Text(
+                  'Warehouse Management\nSystem',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 42,
+                    height: 1.08,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -1.2,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Kelola penerimaan, penyimpanan, picking, dan pengiriman dalam satu aplikasi desktop.',
+                  style: TextStyle(
+                    color: Color(0xFFCBD5E1),
+                    fontSize: 16,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 42),
+                const Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _HeroChip(Icons.inventory_2_outlined, 'Stok real-time'),
+                    _HeroChip(Icons.location_on_outlined, 'Lokasi rak'),
+                    _HeroChip(Icons.fact_check_outlined, 'Jejak audit'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroChip extends StatelessWidget {
+  const _HeroChip(this.icon, this.label);
+  final IconData icon;
+  final String label;
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: .08),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Colors.white.withValues(alpha: .12)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 17, color: const Color(0xFF93C5FD)),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
+  );
 }

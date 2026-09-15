@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
 import '../../services/api_service.dart';
 import '../../widgets/common_widgets.dart';
@@ -14,15 +14,15 @@ class BarangScreen extends StatefulWidget {
 }
 
 class _BarangScreenState extends State<BarangScreen> {
-  List<dynamic> _items    = [];
-  List<String> _kategori  = [];
-  bool _loading           = true;
-  bool _loadingMore       = false;
+  List<dynamic> _items = [];
+  List<String> _kategori = [];
+  bool _loading = true;
+  bool _loadingMore = false;
   String? _error;
-  String _search          = '';
+  String _search = '';
   String? _selectedKategori;
-  int _currentPage        = 1;
-  int _lastPage           = 1;
+  int _currentPage = 1;
+  int _lastPage = 1;
 
   final _searchCtrl = TextEditingController();
 
@@ -51,7 +51,10 @@ class _BarangScreenState extends State<BarangScreen> {
   Future<void> _load({bool reset = false}) async {
     if (reset) {
       _currentPage = 1;
-      setState(() { _loading = true; _error = null; });
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
     } else {
       setState(() => _loadingMore = true);
     }
@@ -65,7 +68,7 @@ class _BarangScreenState extends State<BarangScreen> {
       );
 
       final newItems = res['data'] as List? ?? [];
-      final meta     = res['meta'] as Map<String, dynamic>? ?? {};
+      final meta = res['meta'] as Map<String, dynamic>? ?? {};
 
       setState(() {
         if (reset) {
@@ -73,8 +76,8 @@ class _BarangScreenState extends State<BarangScreen> {
         } else {
           _items.addAll(newItems);
         }
-        _lastPage  = meta['last_page'] ?? 1;
-        _loading   = false;
+        _lastPage = meta['last_page'] ?? 1;
+        _loading = false;
         _loadingMore = false;
       });
     } catch (e) {
@@ -98,17 +101,23 @@ class _BarangScreenState extends State<BarangScreen> {
 
   Color _stokColor(String status) {
     switch (status) {
-      case 'Habis': return AppColors.danger;
-      case 'Reorder': return AppColors.warning;
-      default: return AppColors.success;
+      case 'Habis':
+        return AppColors.danger;
+      case 'Reorder':
+        return AppColors.warning;
+      default:
+        return AppColors.success;
     }
   }
 
   BadgeType _stokBadge(String status) {
     switch (status) {
-      case 'Habis': return BadgeType.danger;
-      case 'Reorder': return BadgeType.warning;
-      default: return BadgeType.success;
+      case 'Habis':
+        return BadgeType.danger;
+      case 'Reorder':
+        return BadgeType.warning;
+      default:
+        return BadgeType.success;
     }
   }
 
@@ -128,7 +137,11 @@ class _BarangScreenState extends State<BarangScreen> {
                 style: const TextStyle(fontSize: 13),
                 decoration: InputDecoration(
                   hintText: 'Cari SKU, nama, kategori...',
-                  prefixIcon: const Icon(Icons.search, size: 18, color: AppColors.textHint),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 18,
+                    color: AppColors.textHint,
+                  ),
                   suffixIcon: _search.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear, size: 16),
@@ -138,7 +151,10 @@ class _BarangScreenState extends State<BarangScreen> {
                           },
                         )
                       : null,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: AppColors.border),
@@ -149,7 +165,10 @@ class _BarangScreenState extends State<BarangScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 2,
+                    ),
                   ),
                   filled: true,
                   fillColor: AppColors.background,
@@ -166,11 +185,13 @@ class _BarangScreenState extends State<BarangScreen> {
                         selected: _selectedKategori == null,
                         onTap: () => _onKategori(null),
                       ),
-                      ..._kategori.map((k) => _KategoriChip(
-                            label: k,
-                            selected: _selectedKategori == k,
-                            onTap: () => _onKategori(k),
-                          )),
+                      ..._kategori.map(
+                        (k) => _KategoriChip(
+                          label: k,
+                          selected: _selectedKategori == k,
+                          onTap: () => _onKategori(k),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -185,114 +206,150 @@ class _BarangScreenState extends State<BarangScreen> {
           child: _loading
               ? const LoadingView()
               : _error != null
-                  ? ErrorView(message: _error!, onRetry: () => _load(reset: true))
-                  : _items.isEmpty
-                      ? const EmptyView(
-                          message: 'Tidak ada barang ditemukan',
-                          icon: Icons.inventory_2_outlined,
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          itemCount: _items.length + (_loadingMore ? 1 : 0) +
-                              (_currentPage < _lastPage && !_loadingMore ? 1 : 0),
-                          itemBuilder: (ctx, i) {
-                            if (i == _items.length && _loadingMore) {
-                              return const Center(child: Padding(
-                                padding: EdgeInsets.all(16),
-                                child: CircularProgressIndicator(color: AppColors.primary),
-                              ));
-                            }
-                            if (i == _items.length && _currentPage < _lastPage) {
-                              return TextButton(
-                                onPressed: () {
-                                  _currentPage++;
-                                  _load();
-                                },
-                                child: const Text('Muat lebih banyak...'),
-                              );
-                            }
-                            final item = _items[i] as Map<String, dynamic>;
-                            final status = item['status_stok'] ?? 'Aman';
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: InkWell(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => BarangDetailScreen(sku: item['sku']),
-                                  ),
+              ? ErrorView(message: _error!, onRetry: () => _load(reset: true))
+              : _items.isEmpty
+              ? const EmptyView(
+                  message: 'Tidak ada barang ditemukan',
+                  icon: Icons.inventory_2_outlined,
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  itemCount:
+                      _items.length +
+                      (_loadingMore ? 1 : 0) +
+                      (_currentPage < _lastPage && !_loadingMore ? 1 : 0),
+                  itemBuilder: (ctx, i) {
+                    if (i == _items.length && _loadingMore) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      );
+                    }
+                    if (i == _items.length && _currentPage < _lastPage) {
+                      return TextButton(
+                        onPressed: () {
+                          _currentPage++;
+                          _load();
+                        },
+                        child: const Text('Muat lebih banyak...'),
+                      );
+                    }
+                    final item = _items[i] as Map<String, dynamic>;
+                    final status = item['status_stok'] ?? 'Aman';
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: InkWell(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                BarangDetailScreen(sku: item['sku']),
+                          ),
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        child: WmsCard(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              // Icon
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceLow,
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                                borderRadius: BorderRadius.circular(12),
-                                child: WmsCard(
-                                  padding: const EdgeInsets.all(14),
-                                  child: Row(
-                                    children: [
-                                      // Icon
-                                      Container(
-                                        width: 42,
-                                        height: 42,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.surfaceLow,
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: const Icon(Icons.inventory_2_outlined,
-                                            size: 20, color: AppColors.textSecondary),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      // Info
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(item['nama'] ?? '-',
-                                                style: const TextStyle(
-                                                    fontSize: 13, fontWeight: FontWeight.w600,
-                                                    color: AppColors.textPrimary),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis),
-                                            const SizedBox(height: 2),
-                                            Text(item['sku'] ?? '-',
-                                                style: const TextStyle(
-                                                    fontSize: 11, color: AppColors.primary,
-                                                    fontFamily: 'monospace', fontWeight: FontWeight.w600)),
-                                            const SizedBox(height: 4),
-                                            Row(
-                                              children: [
-                                                StatusBadge(label: item['kategori'] ?? '-',
-                                                    type: BadgeType.neutral),
-                                                const SizedBox(width: 6),
-                                                StatusBadge(
-                                                    label: status,
-                                                    type: _stokBadge(status)),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      // Stok
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            '${item['stok'] ?? 0}',
-                                            style: TextStyle(
-                                              fontSize: 18, fontWeight: FontWeight.w800,
-                                              color: _stokColor(status),
-                                            ),
-                                          ),
-                                          const Text('unit',
-                                              style: TextStyle(fontSize: 10, color: AppColors.textHint)),
-                                        ],
-                                      ),
-                                      const SizedBox(width: 4),
-                                      const Icon(Icons.chevron_right, size: 16, color: AppColors.textHint),
-                                    ],
-                                  ),
+                                child: const Icon(
+                                  Icons.inventory_2_outlined,
+                                  size: 20,
+                                  color: AppColors.textSecondary,
                                 ),
                               ),
-                            );
-                          },
+                              const SizedBox(width: 12),
+                              // Info
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item['nama'] ?? '-',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      item['sku'] ?? '-',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.primary,
+                                        fontFamily: 'monospace',
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Wrap(
+                                      spacing: 6,
+                                      runSpacing: 6,
+                                      children: [
+                                        StatusBadge(
+                                          label: item['kategori'] ?? '-',
+                                          type: BadgeType.neutral,
+                                        ),
+                                        StatusBadge(
+                                          label: status,
+                                          type: _stokBadge(status),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Stok
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '${item['stok'] ?? 0}',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: _stokColor(status),
+                                    ),
+                                  ),
+                                  Text(
+                                    item['satuan'] ?? 'PCS',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.textHint,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.chevron_right,
+                                size: 16,
+                                color: AppColors.textHint,
+                              ),
+                            ],
+                          ),
                         ),
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -304,7 +361,11 @@ class _KategoriChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _KategoriChip({required this.label, required this.selected, required this.onTap});
+  const _KategoriChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
