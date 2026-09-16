@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
 import '../../services/api_service.dart';
+import '../../services/auth_service.dart';
 import '../../services/external_file_service.dart';
 import '../../widgets/common_widgets.dart';
 
@@ -17,6 +18,7 @@ class BarangDetailScreen extends StatefulWidget {
 class _BarangDetailScreenState extends State<BarangDetailScreen> {
   Map<String, dynamic>? _data;
   bool _loading = true;
+  bool _isAdmin = false;
   String? _error;
 
   @override
@@ -31,9 +33,14 @@ class _BarangDetailScreenState extends State<BarangDetailScreen> {
       _error = null;
     });
     try {
-      final res = await ApiService().getBarangDetail(widget.sku);
+      final results = await Future.wait<dynamic>([
+        ApiService().getBarangDetail(widget.sku),
+        AuthService().isAdmin(),
+      ]);
+      final res = results[0] as Map<String, dynamic>;
       setState(() {
         _data = res['data'];
+        _isAdmin = results[1] as bool;
         _loading = false;
       });
     } catch (e) {
@@ -181,11 +188,42 @@ class _BarangDetailScreenState extends State<BarangDetailScreen> {
                 _infoRow('Lokasi Rak', d['kode_rak'] ?? d['rack'] ?? '-'),
                 _infoRow('Nilai Barang', _fmtRupiah(d['nilai_barang'])),
                 const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: _openLabel,
-                  icon: const Icon(Icons.qr_code_2),
-                  label: const Text('Buka Label QR PDF'),
-                ),
+                if (_isAdmin)
+                  OutlinedButton.icon(
+                    onPressed: _openLabel,
+                    icon: const Icon(Icons.qr_code_2),
+                    label: const Text('Buka Label QR PDF'),
+                  )
+                else
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.lock_outline,
+                          size: 18,
+                          color: AppColors.textHint,
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'QR Barcode hanya tersedia untuk akun Guru / Admin.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
