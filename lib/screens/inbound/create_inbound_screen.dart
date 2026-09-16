@@ -9,7 +9,10 @@ import '../../widgets/common_widgets.dart';
 import '../shared/quick_party_dialog.dart';
 
 class CreateInboundScreen extends StatefulWidget {
-  const CreateInboundScreen({super.key});
+  const CreateInboundScreen({super.key, this.initialOptions});
+
+  final Map<String, dynamic>? initialOptions;
+
   @override
   State<CreateInboundScreen> createState() => _CreateInboundScreenState();
 }
@@ -17,9 +20,14 @@ class CreateInboundScreen extends StatefulWidget {
 class _CreateInboundScreenState extends State<CreateInboundScreen> {
   final _formKey = GlobalKey<FormState>();
   final _notes = TextEditingController();
+  final _scrollController = ScrollController();
   DateTime _date = DateTime.now();
   String? _supplierId, _error;
-  List<dynamic> _suppliers = [], _items = [], _racks = [], _units = [];
+  List<dynamic> _suppliers = [],
+      _items = [],
+      _racks = [],
+      _units = [],
+      _categories = [];
   final List<_InboundLine> _lines = [_InboundLine()];
   bool _loading = true, _saving = false;
 
@@ -47,16 +55,40 @@ class _CreateInboundScreenState extends State<CreateInboundScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    final options = widget.initialOptions;
+    if (options == null) {
+      _load();
+    } else {
+      _suppliers = options['suppliers'] ?? [];
+      _items = options['items'] ?? [];
+      _racks = options['racks'] ?? [];
+      _units = options['units'] ?? [];
+      _categories = options['categories'] ?? [];
+      _loading = false;
+    }
   }
 
   @override
   void dispose() {
     _notes.dispose();
+    _scrollController.dispose();
     for (final line in _lines) {
       line.dispose();
     }
     super.dispose();
+  }
+
+  void _addLine() {
+    setState(() => _lines.add(_InboundLine()));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
   }
 
   Future<void> _load() async {
@@ -69,6 +101,7 @@ class _CreateInboundScreenState extends State<CreateInboundScreen> {
         _items = data['items'] ?? [];
         _racks = data['racks'] ?? [];
         _units = data['units'] ?? [];
+        _categories = data['categories'] ?? [];
         _loading = false;
       });
     } catch (error) {
@@ -134,8 +167,141 @@ class _CreateInboundScreenState extends State<CreateInboundScreen> {
     }
   }
 
+  Future<void> _configureReceipt(_InboundLine line, int index) async {
+    final controller = TextEditingController(text: line.receipt.text);
+    var noReceipt = line.noReceipt;
+    String? validationMessage;
+
+    final result = await showDialog<({bool noReceipt, String receipt})>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text('Atur Resi Barang #${index + 1}'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 56,
+                    child: TextField(
+                      controller: controller,
+                      enabled: !noReceipt,
+                      maxLines: 1,
+                      decoration: InputDecoration(
+                        labelText: noReceipt
+                            ? 'Resi dinyatakan tidak ada'
+                            : 'Nomor resi supplier',
+                        errorText: validationMessage,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => setDialogState(() {
+                      noReceipt = !noReceipt;
+                      validationMessage = null;
+                      if (noReceipt) controller.clear();
+                    }),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: noReceipt,
+                            onChanged: (value) => setDialogState(() {
+                              noReceipt = value ?? false;
+                              validationMessage = null;
+                              if (noReceipt) controller.clear();
+                            }),
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Tidak ada resi',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Pilih hanya jika barang memang tidak memiliki resi supplier.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Batal'),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                if (!noReceipt && controller.text.trim().isEmpty) {
+                  setDialogState(() {
+                    validationMessage =
+                        'Isi nomor resi atau pilih Tidak ada resi';
+                  });
+                  return;
+                }
+                Navigator.pop(dialogContext, (
+                  noReceipt: noReceipt,
+                  receipt: controller.text.trim(),
+                ));
+              },
+              icon: const Icon(Icons.check, size: 18),
+              label: const Text('Simpan Resi'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    if (result == null || !mounted) return;
+
+    setState(() {
+      line.noReceipt = result.noReceipt;
+      line.receipt.text = result.receipt;
+      line.receiptConfigured = true;
+      _error = null;
+    });
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    final missingReceiptIndex = _lines.indexWhere(
+      (line) => !line.receiptConfigured,
+    );
+    if (missingReceiptIndex >= 0) {
+      setState(() {
+        _error =
+            'Atur informasi resi untuk Barang #${missingReceiptIndex + 1} sebelum menyimpan inbound.';
+      });
+      if (_scrollController.hasClients) {
+        await _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        );
+      }
+      return;
+    }
     setState(() {
       _saving = true;
       _error = null;
@@ -168,7 +334,20 @@ class _CreateInboundScreenState extends State<CreateInboundScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Buat Inbound')),
+    appBar: AppBar(
+      title: const Text('Buat Inbound'),
+      actions: const [
+        Center(
+          child: Padding(
+            padding: EdgeInsets.only(right: 16),
+            child: Text(
+              'v1.0.6 • Build 7',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ),
+      ],
+    ),
     body: _loading
         ? const LoadingView()
         : _error != null && _suppliers.isEmpty
@@ -176,6 +355,7 @@ class _CreateInboundScreenState extends State<CreateInboundScreen> {
         : Form(
             key: _formKey,
             child: ListView(
+              controller: _scrollController,
               padding: context.pagePadding,
               children: [
                 if (_error != null)
@@ -257,25 +437,44 @@ class _CreateInboundScreenState extends State<CreateInboundScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Barang Diterima',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
+                context.isMobile
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'Barang Diterima',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          OutlinedButton.icon(
+                            onPressed: _addLine,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Tambah barang'),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Barang Diterima',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: _addLine,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Tambah barang'),
+                          ),
+                        ],
                       ),
-                    ),
-                    TextButton.icon(
-                      onPressed: () =>
-                          setState(() => _lines.add(_InboundLine())),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Tambah barang'),
-                    ),
-                  ],
-                ),
+                const SizedBox(height: 8),
                 ...List.generate(_lines.length, _lineCard),
                 const SizedBox(height: 12),
                 WmsCard(
@@ -340,10 +539,12 @@ class _CreateInboundScreenState extends State<CreateInboundScreen> {
   Widget _lineCard(int index) {
     final line = _lines[index];
     return Padding(
+      key: line.widgetKey,
       padding: const EdgeInsets.only(bottom: 12),
       child: WmsCard(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
@@ -353,16 +554,6 @@ class _CreateInboundScreenState extends State<CreateInboundScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
-                if (!context.isMobile)
-                  SegmentedButton<bool>(
-                  segments: const [
-                    ButtonSegment(value: false, label: Text('Barang Lama')),
-                    ButtonSegment(value: true, label: Text('Barang Baru')),
-                  ],
-                  selected: {line.isNew},
-                  onSelectionChanged: (value) =>
-                      setState(() => line.isNew = value.first),
-                  ),
                 if (_lines.length > 1)
                   IconButton(
                     onPressed: () => setState(() {
@@ -372,23 +563,19 @@ class _CreateInboundScreenState extends State<CreateInboundScreen> {
                   ),
               ],
             ),
-            if (context.isMobile) ...[
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: SegmentedButton<bool>(
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(value: false, label: Text('Barang Lama')),
-                    ButtonSegment(value: true, label: Text('Barang Baru')),
-                  ],
-                  selected: {line.isNew},
-                  onSelectionChanged: (value) =>
-                      setState(() => line.isNew = value.first),
-                ),
-              ),
-            ],
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
+            SegmentedButton<bool>(
+              showSelectedIcon: true,
+              expandedInsets: EdgeInsets.zero,
+              segments: const [
+                ButtonSegment(value: false, label: Text('Barang Lama')),
+                ButtonSegment(value: true, label: Text('Barang Baru')),
+              ],
+              selected: {line.isNew},
+              onSelectionChanged: (value) =>
+                  setState(() => line.isNew = value.first),
+            ),
+            const SizedBox(height: 12),
             if (!line.isNew)
               DropdownButtonFormField<String>(
                 initialValue: line.sku,
@@ -421,28 +608,86 @@ class _CreateInboundScreenState extends State<CreateInboundScreen> {
                     ? null
                     : 'Nama wajib diisi',
               ),
-              const SizedBox(height: 10),
-              Flex(
-                direction: context.isMobile ? Axis.vertical : Axis.horizontal,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              const SizedBox(height: 12),
+              Autocomplete<String>(
+                optionsBuilder: (text) {
+                  final query = text.text.trim().toLowerCase();
+                  final categories = _categories
+                      .map((value) => value.toString())
+                      .where((value) => value.trim().isNotEmpty);
+                  if (query.isEmpty) return categories;
+                  return categories.where(
+                    (value) => value.toLowerCase().contains(query),
+                  );
+                },
+                onSelected: (value) => line.categoryValue = value,
+                fieldViewBuilder:
+                    (context, controller, focusNode, onFieldSubmitted) {
+                      if (controller.text.isEmpty &&
+                          line.categoryValue.isNotEmpty) {
+                        controller.text = line.categoryValue;
+                      }
+                      return TextFormField(
+                        key: ValueKey('inbound-category-${index + 1}'),
+                        controller: controller,
+                        focusNode: focusNode,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(
+                          labelText: 'Kategori',
+                          hintText: 'Pilih kategori atau ketik kategori baru',
+                          suffixIcon: Icon(Icons.arrow_drop_down),
+                        ),
+                        onChanged: (value) => line.categoryValue = value,
+                        onFieldSubmitted: (_) => onFieldSubmitted(),
+                        validator: (value) =>
+                            !line.isNew || (value?.trim().isNotEmpty ?? false)
+                            ? null
+                            : 'Kategori wajib dipilih atau ditulis',
+                      );
+                    },
+              ),
+              const SizedBox(height: 12),
+              Row(
                 children: [
-                  _mobileField(
-                    TextFormField(
-                      controller: line.category,
-                      decoration: const InputDecoration(labelText: 'Kategori'),
+                  Expanded(
+                    child: TextFormField(
+                      controller: line.price,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        labelText: 'Harga dasar',
+                      ),
                       validator: (value) =>
-                          !line.isNew || (value?.trim().isNotEmpty ?? false)
+                          !line.isNew || (int.tryParse(value ?? '') ?? -1) >= 0
                           ? null
-                          : 'Kategori wajib diisi',
+                          : 'Harga tidak valid',
                     ),
                   ),
-                  SizedBox(
-                    width: context.isMobile ? 0 : 10,
-                    height: context.isMobile ? 10 : 0,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: line.minimum,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(
+                        labelText: 'Minimum stok',
+                      ),
+                      validator: (value) =>
+                          !line.isNew || (int.tryParse(value ?? '') ?? -1) >= 0
+                          ? null
+                          : 'Minimum tidak valid',
+                    ),
                   ),
-                  _mobileField(
-                    DropdownButtonFormField<String>(
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
                       initialValue: line.unit,
+                      isExpanded: true,
                       decoration: const InputDecoration(labelText: 'Satuan'),
                       items: _units
                           .map<DropdownMenuItem<String>>(
@@ -458,100 +703,44 @@ class _CreateInboundScreenState extends State<CreateInboundScreen> {
                           : 'Satuan wajib dipilih',
                     ),
                   ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: IconButton(
-                      onPressed: () => _addUnit(line),
-                      tooltip: 'Tambah satuan',
-                      icon: const Icon(Icons.add_circle_outline),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Flex(
-                direction: context.isMobile ? Axis.vertical : Axis.horizontal,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _mobileField(
-                    TextFormField(
-                      controller: line.price,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        labelText: 'Harga dasar',
-                      ),
-                      validator: (value) =>
-                          !line.isNew || (int.tryParse(value ?? '') ?? -1) >= 0
-                          ? null
-                          : 'Harga tidak valid',
-                    ),
-                  ),
-                  SizedBox(
-                    width: context.isMobile ? 0 : 10,
-                    height: context.isMobile ? 10 : 0,
-                  ),
-                  _mobileField(
-                    TextFormField(
-                      controller: line.minimum,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Minimum stok',
-                      ),
-                      validator: (value) =>
-                          !line.isNew || (int.tryParse(value ?? '') ?? -1) >= 0
-                          ? null
-                          : 'Minimum tidak valid',
-                    ),
+                  IconButton(
+                    onPressed: () => _addUnit(line),
+                    tooltip: 'Tambah satuan',
+                    icon: const Icon(Icons.add_circle_outline),
                   ),
                 ],
               ),
             ],
-            const SizedBox(height: 10),
-            Flex(
-              direction: context.isMobile ? Axis.vertical : Axis.horizontal,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _mobileField(
-                  DropdownButtonFormField<String>(
-                    initialValue: line.rackId,
-                    isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Rak tujuan'),
-                    items: _racks
-                        .map<DropdownMenuItem<String>>(
-                          (row) => DropdownMenuItem(
-                            value: row['id'].toString(),
-                            child: Text(
-                              '${row['kode_rak']} • sisa ${row['sisa']}',
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) => setState(() => line.rackId = value),
-                    validator: (value) =>
-                        value == null ? 'Rak wajib dipilih' : null,
-                  ),
-                ),
-                SizedBox(
-                  width: context.isMobile ? 0 : 10,
-                  height: context.isMobile ? 10 : 0,
-                ),
-                _mobileField(
-                  TextFormField(
-                    controller: line.qty,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(labelText: 'Qty'),
-                    validator: (value) => (int.tryParse(value ?? '') ?? 0) > 0
-                        ? null
-                        : 'Qty minimal 1',
-                  ),
-                ),
-              ],
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: line.rackId,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Rak tujuan'),
+              items: _racks
+                  .map<DropdownMenuItem<String>>(
+                    (row) => DropdownMenuItem(
+                      value: row['id'].toString(),
+                      child: Text(
+                        '${row['kode_rak']} • sisa ${row['sisa']}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => line.rackId = value),
+              validator: (value) => value == null ? 'Rak wajib dipilih' : null,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: line.qty,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(labelText: 'Qty'),
+              validator: (value) =>
+                  (int.tryParse(value ?? '') ?? 0) > 0 ? null : 'Qty minimal 1',
+            ),
+            const SizedBox(height: 12),
             if (!line.isNew && line.sku != null) ...[
               Container(
                 width: double.infinity,
@@ -560,45 +749,13 @@ class _CreateInboundScreenState extends State<CreateInboundScreen> {
                   color: AppColors.surfaceLow,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: context.isMobile
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.lock_outline,
-                                size: 18,
-                                color: AppColors.textSecondary,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  "Harga tersimpan: ${_rupiah(_linePrice(line))} / ${_selectedItem(line)?['satuan'] ?? '-'}",
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Subtotal ${_rupiah(_linePrice(line) * (int.tryParse(line.qty.text) ?? 0))}',
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                        ],
-                      )
-                    : Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.lock_outline,
-                      size: 18,
-                      color: AppColors.textSecondary,
+                    Text(
+                      "Harga tersimpan: ${_rupiah(_linePrice(line))} / ${_selectedItem(line)?['satuan'] ?? '-'}",
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        "Harga tersimpan: ${_rupiah(_linePrice(line))} / ${_selectedItem(line)?['satuan'] ?? '-'}",
-                      ),
-                    ),
+                    const SizedBox(height: 6),
                     Text(
                       'Subtotal ${_rupiah(_linePrice(line) * (int.tryParse(line.qty.text) ?? 0))}',
                       style: const TextStyle(fontWeight: FontWeight.w800),
@@ -606,60 +763,146 @@ class _CreateInboundScreenState extends State<CreateInboundScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 10),
             ] else if (line.isNew) ...[
-              Align(
-                alignment: Alignment.centerRight,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceLow,
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Text(
                   'Subtotal ${_rupiah(_linePrice(line) * (int.tryParse(line.qty.text) ?? 0))}',
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
-              const SizedBox(height: 10),
             ],
-            TextFormField(
-              controller: line.receipt,
-              enabled: !line.noReceipt,
-              decoration: InputDecoration(
-                labelText: line.noReceipt
-                    ? 'Resi dinyatakan tidak ada'
-                    : 'No. resi supplier',
-              ),
-              validator: (value) =>
-                  !line.noReceipt && (value?.trim().isEmpty ?? true)
-                  ? 'Isi nomor resi atau pilih Tidak ada resi'
-                  : null,
-            ),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              value: line.noReceipt,
-              title: const Text('Tidak ada resi'),
-              subtitle: const Text(
-                'Pilih hanya jika barang memang tidak memiliki resi supplier.',
-              ),
-              controlAffinity: ListTileControlAffinity.leading,
-              onChanged: (value) => setState(() {
-                line.noReceipt = value ?? false;
-                if (line.noReceipt) line.receipt.clear();
-              }),
+            const SizedBox(height: 12),
+            InboundReceiptSummary(
+              itemNumber: index + 1,
+              configured: line.receiptConfigured,
+              noReceipt: line.noReceipt,
+              receipt: line.receipt.text,
+              onConfigure: () => _configureReceipt(line, index),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _mobileField(Widget child) =>
-      context.isMobile ? child : Expanded(child: child);
+class InboundReceiptSummary extends StatelessWidget {
+  const InboundReceiptSummary({
+    required this.itemNumber,
+    required this.configured,
+    required this.noReceipt,
+    required this.receipt,
+    required this.onConfigure,
+    super.key,
+  });
+
+  final int itemNumber;
+  final bool configured;
+  final bool noReceipt;
+  final String receipt;
+  final VoidCallback onConfigure;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: configured ? AppColors.successBg : const Color(0xFFFEF3C7),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(
+        configured ? Icons.receipt_long : Icons.info_outline,
+        color: configured ? AppColors.success : AppColors.warning,
+        size: 20,
+      ),
+    );
+    final information = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Informasi Resi Barang #$itemNumber',
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          !configured
+              ? 'Belum diatur — nomor resi wajib diisi atau nyatakan tidak ada.'
+              : noReceipt
+              ? 'Tidak ada resi supplier'
+              : 'Nomor resi: $receipt',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 11,
+            color: configured ? AppColors.textSecondary : AppColors.warning,
+          ),
+        ),
+      ],
+    );
+    final button = OutlinedButton.icon(
+      key: ValueKey('receipt-configure-$itemNumber'),
+      onPressed: onConfigure,
+      icon: Icon(configured ? Icons.edit_outlined : Icons.add, size: 17),
+      label: Text(configured ? 'Ubah' : 'Atur Resi'),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) => Container(
+        key: ValueKey('receipt-summary-$itemNumber'),
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLow,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: constraints.maxWidth < 520
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      icon,
+                      const SizedBox(width: 12),
+                      Expanded(child: information),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  button,
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  icon,
+                  const SizedBox(width: 12),
+                  Expanded(child: information),
+                  const SizedBox(width: 12),
+                  button,
+                ],
+              ),
+      ),
+    );
+  }
 }
 
 class _InboundLine {
+  final widgetKey = UniqueKey();
   bool isNew = false;
   bool noReceipt = false;
+  bool receiptConfigured = false;
   String? sku, rackId, unit;
+  String categoryValue = '';
   final qty = TextEditingController(text: '1');
   final name = TextEditingController(),
-      category = TextEditingController(),
       price = TextEditingController(),
       minimum = TextEditingController(text: '0'),
       receipt = TextEditingController();
@@ -670,7 +913,7 @@ class _InboundLine {
     'tanpa_resi': noReceipt,
     if (isNew) ...{
       'Nama_baru': name.text.trim(),
-      'Kategori_baru': category.text.trim(),
+      'Kategori_baru': categoryValue.trim(),
       'Satuan_baru': unit,
       'Rack_ID_baru': rackId,
       'Min_Stok_baru': int.parse(minimum.text),
@@ -683,7 +926,6 @@ class _InboundLine {
   void dispose() {
     qty.dispose();
     name.dispose();
-    category.dispose();
     price.dispose();
     minimum.dispose();
     receipt.dispose();

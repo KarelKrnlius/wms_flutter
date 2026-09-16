@@ -17,6 +17,7 @@ class _OutboundDetailScreenState extends State<OutboundDetailScreen> {
   bool _loading = true, _completing = false;
   bool _isAdmin = false;
   String? _error;
+  final Set<String> _pickedDetailIds = {};
 
   @override
   void initState() {
@@ -101,9 +102,14 @@ class _OutboundDetailScreenState extends State<OutboundDetailScreen> {
     });
     try {
       final res = await ApiService().getOutboundDetail(widget.id);
+      if (!mounted) return;
       setState(() {
         _data = res['data'];
         _loading = false;
+        if (_data?['is_complete'] == true ||
+            _data?['transaction_status'] == 'cancelled') {
+          _pickedDetailIds.clear();
+        }
       });
     } catch (e) {
       setState(() {
@@ -130,9 +136,27 @@ class _OutboundDetailScreenState extends State<OutboundDetailScreen> {
   }
 
   Future<void> _completePicking() async {
+    final details = (_data?['details'] as List?) ?? [];
+    final requiredIds = details
+        .map((row) => (row as Map<String, dynamic>)['detail_id'].toString())
+        .toSet();
+    if (requiredIds.isEmpty || !_pickedDetailIds.containsAll(requiredIds)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Centang seluruh barang yang sudah disiapkan sebelum menyelesaikan picking.',
+          ),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
     setState(() => _completing = true);
     try {
-      final res = await ApiService().completePicking(widget.id);
+      final res = await ApiService().completePicking(
+        widget.id,
+        requiredIds.toList(),
+      );
       if (res['success'] == true) {
         await _load();
         if (!mounted) return;
@@ -188,6 +212,12 @@ class _OutboundDetailScreenState extends State<OutboundDetailScreen> {
         ? BadgeType.danger
         : (priority == 'normal' ? BadgeType.warning : BadgeType.success);
     final details = (d['details'] as List?) ?? [];
+    final requiredDetailIds = details
+        .map((row) => (row as Map<String, dynamic>)['detail_id'].toString())
+        .toSet();
+    final allPicked =
+        requiredDetailIds.isNotEmpty &&
+        _pickedDetailIds.containsAll(requiredDetailIds);
     final customer = d['customer'] as Map<String, dynamic>?;
 
     return SingleChildScrollView(
@@ -305,10 +335,21 @@ class _OutboundDetailScreenState extends State<OutboundDetailScreen> {
                 // Tombol Complete Picking
                 if (!isComplete && !isCancelled) ...[
                   const SizedBox(height: 16),
+                  Text(
+                    '${_pickedDetailIds.length}/${requiredDetailIds.length} barang siap diambil',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: allPicked
+                          ? AppColors.success
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   WmsButton(
                     label: 'Selesaikan Picking',
                     icon: Icons.check_circle_outline,
-                    onPressed: _completePicking,
+                    onPressed: allPicked ? _completePicking : null,
                     isLoading: _completing,
                     color: AppColors.success,
                   ),
@@ -346,6 +387,21 @@ class _OutboundDetailScreenState extends State<OutboundDetailScreen> {
             ),
           ),
           const SizedBox(height: 8),
+          if (!isComplete && !isCancelled) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.warningBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                'Ambil dan periksa barang sesuai rak, lalu centang setiap baris. Tombol selesai aktif setelah seluruh barang siap.',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
           WmsCard(
             child: Column(
               children: details.asMap().entries.map((e) {
@@ -359,6 +415,32 @@ class _OutboundDetailScreenState extends State<OutboundDetailScreen> {
                       ),
                       child: Row(
                         children: [
+                          if (!isComplete && !isCancelled) ...[
+                            Checkbox(
+                              value: _pickedDetailIds.contains(
+                                det['detail_id'].toString(),
+                              ),
+                              onChanged: (checked) => setState(() {
+                                final detailId = det['detail_id'].toString();
+                                if (checked == true) {
+                                  _pickedDetailIds.add(detailId);
+                                } else {
+                                  _pickedDetailIds.remove(detailId);
+                                }
+                              }),
+                            ),
+                            const SizedBox(width: 4),
+                          ] else ...[
+                            Icon(
+                              isComplete
+                                  ? Icons.check_circle
+                                  : Icons.cancel_outlined,
+                              color: isComplete
+                                  ? AppColors.success
+                                  : AppColors.danger,
+                            ),
+                            const SizedBox(width: 12),
+                          ],
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,

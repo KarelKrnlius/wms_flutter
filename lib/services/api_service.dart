@@ -197,8 +197,13 @@ class ApiService {
   Future<Map<String, dynamic>> getOutboundFormOptions() =>
       _get('/outbound-form-options');
 
-  Future<Map<String, dynamic>> completePicking(String id) async {
-    return await _post('/outbound/$id/picking-complete', {});
+  Future<Map<String, dynamic>> completePicking(
+    String id,
+    List<String> confirmedDetailIds,
+  ) async {
+    return await _post('/outbound/$id/picking-complete', {
+      'confirmed_detail_ids': confirmedDetailIds,
+    });
   }
 
   Future<Map<String, dynamic>> cancelInbound(String id, String reason) =>

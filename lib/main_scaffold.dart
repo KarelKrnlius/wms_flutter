@@ -32,6 +32,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   int _mobileRefreshVersion = 0;
   Map<String, dynamic>? _user;
   bool _loadingUser = true;
+  bool _desktopSidebarExpanded = true;
 
   bool get _isAdmin => _user?['role'] == 'admin';
 
@@ -337,14 +338,20 @@ class _MainScaffoldState extends State<MainScaffold> {
     return Scaffold(
       body: Row(
         children: [
-          SizedBox(
-            width: 264,
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            width: _desktopSidebarExpanded ? 264 : 76,
             child: _DesktopSidebar(
               destinations: items,
               selectedIndex: _selectedIndex,
               user: _user,
               onSelect: (index) => setState(() => _selectedIndex = index),
               onLogout: _logout,
+              collapsed: !_desktopSidebarExpanded,
+              onToggle: () => setState(
+                () => _desktopSidebarExpanded = !_desktopSidebarExpanded,
+              ),
             ),
           ),
           const VerticalDivider(width: 1),
@@ -424,12 +431,16 @@ class _DesktopSidebar extends StatelessWidget {
     required this.user,
     required this.onSelect,
     required this.onLogout,
+    required this.collapsed,
+    required this.onToggle,
   });
   final List<_Destination> destinations;
   final int selectedIndex;
   final Map<String, dynamic>? user;
   final ValueChanged<int> onSelect;
   final VoidCallback onLogout;
+  final bool collapsed;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -437,7 +448,7 @@ class _DesktopSidebar extends StatelessWidget {
     final entries = <Widget>[];
     for (var i = 0; i < destinations.length; i++) {
       final item = destinations[i];
-      if (item.group != lastGroup) {
+      if (!collapsed && item.group != lastGroup) {
         lastGroup = item.group;
         entries.add(
           Padding(
@@ -455,24 +466,35 @@ class _DesktopSidebar extends StatelessWidget {
         );
       }
       entries.add(
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-          child: ListTile(
-            dense: true,
-            selected: selectedIndex == i,
-            selectedTileColor: const Color(0xFFEAF3FF),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(9),
+        Tooltip(
+          message: collapsed ? item.label : '',
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+            child: ListTile(
+              dense: true,
+              selected: selectedIndex == i,
+              selectedTileColor: const Color(0xFFEAF3FF),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(9),
+              ),
+              leading: Icon(
+                selectedIndex == i ? item.activeIcon : item.icon,
+                size: 20,
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: collapsed ? 14 : 16,
+              ),
+              title: collapsed
+                  ? null
+                  : Text(
+                      item.label,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+              onTap: () => onSelect(i),
             ),
-            leading: Icon(
-              selectedIndex == i ? item.activeIcon : item.icon,
-              size: 20,
-            ),
-            title: Text(
-              item.label,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            ),
-            onTap: () => onSelect(i),
           ),
         ),
       );
@@ -482,44 +504,86 @@ class _DesktopSidebar extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(18, 20, 18, 14),
-              child: _Brand(),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                collapsed ? 12 : 18,
+                14,
+                collapsed ? 12 : 10,
+                10,
+              ),
+              child: Row(
+                mainAxisAlignment: collapsed
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.spaceBetween,
+                children: [
+                  if (!collapsed) const Expanded(child: _Brand()),
+                  IconButton(
+                    onPressed: onToggle,
+                    tooltip: collapsed ? 'Buka sidebar' : 'Tutup sidebar',
+                    icon: Icon(
+                      collapsed
+                          ? Icons.keyboard_double_arrow_right
+                          : Icons.keyboard_double_arrow_left,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const Divider(),
             Expanded(
               child: ListView(padding: EdgeInsets.zero, children: entries),
             ),
             const Divider(),
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 6,
-              ),
-              leading: CircleAvatar(
-                backgroundColor: AppColors.dark,
-                foregroundColor: Colors.white,
-                child: Text(
-                  '${user?['name'] ?? 'U'}'.substring(0, 1).toUpperCase(),
+            if (collapsed)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: AppColors.dark,
+                      foregroundColor: Colors.white,
+                      child: Text(
+                        '${user?['name'] ?? 'U'}'.substring(0, 1).toUpperCase(),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: onLogout,
+                      tooltip: 'Keluar',
+                      icon: const Icon(Icons.logout, size: 19),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 6,
+                ),
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.dark,
+                  foregroundColor: Colors.white,
+                  child: Text(
+                    '${user?['name'] ?? 'U'}'.substring(0, 1).toUpperCase(),
+                  ),
+                ),
+                title: Text(
+                  user?['name'] ?? 'Pengguna',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  user?['role_label'] ??
+                      (user?['role'] == 'admin'
+                          ? 'Guru (Admin)'
+                          : 'Operator (Siswa)'),
+                ),
+                trailing: IconButton(
+                  onPressed: onLogout,
+                  tooltip: 'Keluar',
+                  icon: const Icon(Icons.logout, size: 19),
                 ),
               ),
-              title: Text(
-                user?['name'] ?? 'Pengguna',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              subtitle: Text(
-                user?['role_label'] ??
-                    (user?['role'] == 'admin'
-                        ? 'Guru (Admin)'
-                        : 'Operator (Siswa)'),
-              ),
-              trailing: IconButton(
-                onPressed: onLogout,
-                tooltip: 'Keluar',
-                icon: const Icon(Icons.logout, size: 19),
-              ),
-            ),
           ],
         ),
       ),

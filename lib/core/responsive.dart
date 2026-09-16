@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 /// Mobile dan desktop sengaja memiliki pola navigasi berbeda. Tablet menjadi
 /// jembatan dengan navigation rail agar ruang horizontal tidak terbuang.
 abstract final class AppBreakpoints {
-  static const double tablet = 720;
+  static const double tablet = 600;
   static const double desktop = 1100;
   static const double maxContentWidth = 1540;
 }

@@ -89,7 +89,9 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(
+            MediaQuery.sizeOf(context).width <= 360 ? 16 : 24,
+          ),
           child: Form(
             key: _formGlobal,
             child: Column(
@@ -102,26 +104,33 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const WmsLogo(size: 48),
                     const SizedBox(width: 12),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'WMS Prototipe 2',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                            letterSpacing: -0.3,
+                    const Flexible(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'WMS Prototipe 2',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                              letterSpacing: -0.3,
+                            ),
                           ),
-                        ),
-                        Text(
-                          'Warehouse Management System',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textHint,
+                          Text(
+                            'Warehouse Management System',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textHint,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -270,12 +279,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: AppColors.primary,
                           ),
                           SizedBox(width: 6),
-                          Text(
-                            'Kredensial Default',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
+                          Expanded(
+                            child: Text(
+                              'Kredensial Default',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                           ),
                         ],
@@ -290,7 +303,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 24),
                 const Text(
-                  'WMS Prototipe 2 © 2026 — SMK Logistik',
+                  'WMS Prototipe 2 • Versi 1.0.6 (Build 7) © 2026',
                   style: TextStyle(fontSize: 10, color: AppColors.textHint),
                 ),
               ],
@@ -302,25 +315,39 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _credRow(String role, String user, String pass) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 90,
-          child: Text(
-            role,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppColors.textSecondary,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final credentials = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _codeChip(user),
+            const Text(
+              ' / ',
+              style: TextStyle(fontSize: 11, color: AppColors.textHint),
             ),
-          ),
-        ),
-        _codeChip(user),
-        const Text(
-          ' / ',
-          style: TextStyle(fontSize: 11, color: AppColors.textHint),
-        ),
-        _codeChip(pass),
-      ],
+            _codeChip(pass),
+          ],
+        );
+
+        final roleLabel = Text(
+          role,
+          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        );
+
+        if (constraints.maxWidth < 280) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [roleLabel, const SizedBox(height: 4), credentials],
+          );
+        }
+
+        return Row(
+          children: [
+            SizedBox(width: 90, child: roleLabel),
+            credentials,
+          ],
+        );
+      },
     );
   }
 
