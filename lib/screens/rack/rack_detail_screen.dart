@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:typed_data';
 
 import '../../core/app_theme.dart';
 import '../../core/responsive.dart';
