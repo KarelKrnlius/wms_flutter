@@ -4,6 +4,7 @@ import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../main_scaffold.dart';
 import '../../widgets/common_widgets.dart';
+import '../../widgets/wms_logo.dart';
 import 'student_identity_dialog.dart';
 
 /// LoginScreen - Halaman login WMS Flutter
@@ -99,19 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: AppColors.dark,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.warehouse,
-                        color: Colors.white,
-                        size: 22,
-                      ),
-                    ),
+                    const WmsLogo(size: 48),
                     const SizedBox(width: 12),
                     const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,19 +372,7 @@ class _DesktopLoginHero extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: const Icon(
-                    Icons.warehouse,
-                    size: 32,
-                    color: Colors.white,
-                  ),
-                ),
+                const WmsLogo(size: 84),
                 const SizedBox(height: 32),
                 const Text(
                   'Warehouse Management\nSystem',

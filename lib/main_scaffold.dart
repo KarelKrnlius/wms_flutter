@@ -18,6 +18,7 @@ import 'screens/stock_opname/stock_opname_screen.dart';
 import 'screens/supplier/supplier_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
+import 'widgets/wms_logo.dart';
 
 class MainScaffold extends StatefulWidget {
   const MainScaffold({super.key});
@@ -608,15 +609,7 @@ class _Brand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mark = Container(
-      width: 38,
-      height: 38,
-      decoration: BoxDecoration(
-        color: AppColors.dark,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: const Icon(Icons.warehouse, color: Colors.white, size: 20),
-    );
+    const mark = WmsLogo(size: 40);
     if (compact) return mark;
     return Row(
       mainAxisSize: MainAxisSize.min,
