@@ -216,6 +216,7 @@ class _TambahOpnameScreenState extends State<_TambahOpnameScreen> {
 
   List<dynamic> _barangs = [];
   String? _selectedSku;
+  String? _barangError;
   DateTime _tanggal = DateTime.now();
   bool _loading = false, _loadingBarang = true;
 
@@ -232,14 +233,29 @@ class _TambahOpnameScreenState extends State<_TambahOpnameScreen> {
   }
 
   Future<void> _loadBarang() async {
+    if (mounted) {
+      setState(() {
+        _loadingBarang = true;
+        _barangError = null;
+      });
+    }
     try {
-      final res = await ApiService().getKartuStok();
+      // Daftar barang harus tersedia untuk Admin maupun Siswa. Endpoint kartu
+      // stok bersifat admin-only, sehingga form opname tidak boleh bergantung
+      // pada endpoint tersebut.
+      final res = await ApiService().getBarang(perPage: 100);
+      if (!mounted) return;
       setState(() {
         _barangs = (res['data'] as List?) ?? [];
         _loadingBarang = false;
       });
-    } catch (_) {
-      setState(() => _loadingBarang = false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _barangs = [];
+        _barangError = e.toString().replaceAll('Exception: ', '');
+        _loadingBarang = false;
+      });
     }
   }
 
@@ -316,6 +332,13 @@ class _TambahOpnameScreenState extends State<_TambahOpnameScreen> {
       ),
       body: _loadingBarang
           ? const LoadingView()
+          : _barangError != null
+          ? ErrorView(message: _barangError!, onRetry: _loadBarang)
+          : _barangs.isEmpty
+          ? const EmptyView(
+              message: 'Belum ada barang yang dapat dipilih untuk stock opname',
+              icon: Icons.inventory_2_outlined,
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Form(
@@ -353,8 +376,9 @@ class _TambahOpnameScreenState extends State<_TambahOpnameScreen> {
                               ),
                             ),
                             items: _barangs.map((b) {
-                              final sku = b['sku'] as String;
-                              final nama = b['nama'] as String;
+                              final item = b as Map<String, dynamic>;
+                              final sku = item['sku']?.toString() ?? '';
+                              final nama = item['nama']?.toString() ?? '-';
                               return DropdownMenuItem(
                                 value: sku,
                                 child: Text(

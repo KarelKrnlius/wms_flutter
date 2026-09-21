@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local distribution packages
+/dist/
+
+# Local report assets
+/report_assets/
